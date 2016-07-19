@@ -5,7 +5,7 @@ import Html.Events exposing (..)
 import Http
 import Task
 
-import OAuth exposing (googleConfig, facebookConfig)
+import OAuth exposing (googleConfig, facebookConfig, gitHubConfig, stackExchangeConfig)
 
 
 main =
@@ -23,6 +23,8 @@ main =
 type alias Model =
   { googleAuthClient : OAuth.Client
   , facebookAuthClient : OAuth.Client
+  , gitHubAuthClient : OAuth.Client
+  , stackExchangeAuthClient : OAuth.Client
   }
 
 
@@ -31,6 +33,7 @@ google =
   { googleConfig
   | clientId = "253270339440-tp9fiqj5boaqvrs3j8g2u0mtdn4ittgp.apps.googleusercontent.com"
   , scopes = [ "https://www.googleapis.com/auth/drive" ]
+  , redirectUrl = "http://localhost:8000/main.elm"
   }
 
 
@@ -39,6 +42,25 @@ facebook =
   { facebookConfig
   | clientId = "299210180425495"
   , scopes = [ "public_profile" ]
+  , redirectUrl = "http://localhost:8000/main.elm"
+  }
+
+
+gitHub : OAuth.Config
+gitHub =
+  { gitHubConfig
+  | clientId = "b7941bb82bd63e684712"
+  , scopes = [ "user" ]
+  , redirectUrl = "http://localhost:8000/main.elm"
+  }
+
+
+stackExchange : OAuth.Config
+stackExchange =
+  { stackExchangeConfig
+  | clientId = "7515"
+  , scopes = [ "" ]
+  , redirectUrl = "http://localhost:8000/main.elm"
   }
 
 
@@ -46,6 +68,8 @@ init : (Model, Cmd Msg)
 init =
   { googleAuthClient = (OAuth.newClient google)
   , facebookAuthClient = (OAuth.newClient facebook)
+  , gitHubAuthClient = (OAuth.newClient gitHub)
+  , stackExchangeAuthClient = (OAuth.newClient stackExchange)
   } ! []
 
 
@@ -56,6 +80,8 @@ type Msg
   = Nop
   | FacebookAuth OAuth.Msg
   | GoogleAuth OAuth.Msg
+  | GitHubAuth OAuth.Msg
+  | StackExchangeAuth OAuth.Msg
   | Drive
   | DriveResp
 
@@ -81,6 +107,18 @@ update msg model =
       in
         { model | facebookAuthClient = client } ! [ Cmd.map FacebookAuth cmd ]
 
+    GitHubAuth authMsg ->
+      let
+        (client, cmd) = OAuth.update authMsg model.gitHubAuthClient
+      in
+        { model | gitHubAuthClient = client } ! [ Cmd.map GitHubAuth cmd ]
+
+    StackExchangeAuth authMsg ->
+      let
+        (client, cmd) = OAuth.update authMsg model.stackExchangeAuthClient
+      in
+        { model | stackExchangeAuthClient = client } ! [ Cmd.map StackExchangeAuth cmd ]
+
     Drive ->
       model ! [ driveCmd model ]
 
@@ -94,6 +132,8 @@ view model =
     [ h2 [] [text "OAuth Demo"]
     , button [ onClick (GoogleAuth OAuth.Auth) ] [ text "Google Auth" ]
     , button [ onClick (FacebookAuth OAuth.Auth) ] [ text "Facebook Auth" ]
+    , button [ onClick (GitHubAuth OAuth.Auth) ] [ text "GitHub Auth" ]
+    , button [ onClick (StackExchangeAuth OAuth.Auth) ] [ text "StackExchange Auth" ]
     , br [] []
     , pre
       [ style

@@ -5,6 +5,8 @@ module OAuth exposing
   , Token (..)
   , googleConfig
   , facebookConfig
+  , gitHubConfig
+  , stackExchangeConfig
   , newClient
   , update
   , getToken
@@ -37,6 +39,7 @@ type alias Config =
   , validateUrl : String
   , clientId : String
   , scopes : List String
+  , redirectUrl : String
   }
 
 
@@ -49,6 +52,7 @@ googleConfig =
   , validateUrl = "https://www.googleapis.com/oauth2/v3/tokeninfo"
   , clientId = ""
   , scopes = []
+  , redirectUrl = ""
   }
 
 
@@ -61,6 +65,35 @@ facebookConfig =
   , validateUrl = "https://graph.facebook.com/debug_token"
   , clientId = ""
   , scopes = []
+  , redirectUrl = ""
+  }
+
+
+{-| Base configuration for GitHub endpoints
+Based on https://developer.github.com/v3/oauth/ .
+Note: Does not currently work. It seems that GitHub does not currently support web-only flow.
+-}
+gitHubConfig : Config
+gitHubConfig =
+  { endpointUrl = "https://github.com/login/oauth/authorize"
+  , validateUrl = ""
+  , clientId = ""
+  , scopes = []
+  , redirectUrl = ""
+  }
+
+
+{-| Base configuration for StackExchange endpoints
+Based on https://api.stackexchange.com/docs/authentication .
+Note: Verification does not seem to be provided by this endpoint.
+-}
+stackExchangeConfig : Config
+stackExchangeConfig =
+  { endpointUrl = "https://stackexchange.com/oauth/dialog"
+  , validateUrl = ""
+  , clientId = ""
+  , scopes = []
+  , redirectUrl = ""
   }
 
 
@@ -113,14 +146,13 @@ buildAuthUrl config =
     , ("immediate", "true")
     , ("approval_prompt", "auto")
     , ("client_id", config.clientId)
-    --, ("nonce", "xxyyzz")
-    , ("redirect_uri", "http://localhost:8000/main.elm")
+    , ("redirect_uri", config.redirectUrl)
     , ("scope", String.join " " config.scopes)
     ]
 
 
-validateUrl : Client -> String -> String
-validateUrl client token =
+buildValidateUrl : Client -> String -> String
+buildValidateUrl client token =
   Http.url
     client.config.validateUrl
     [ ("input_token", token)
@@ -131,9 +163,9 @@ validateUrl client token =
 getTokenFromHash : String -> String
 getTokenFromHash s =
   let
-    p = parseUrlParams s
+    params = parseUrlParams s
   in
-    Dict.get "access_token" p
+    Dict.get "access_token" params
       |> Maybe.withDefault ""
 
 
@@ -158,14 +190,9 @@ parseSingleParam p =
 
 validateToken : Client -> String -> Task.Task String Token
 validateToken client token =
-  Http.getString (validateUrl client token)
+  Http.getString (buildValidateUrl client token)
     |> Task.mapError (always "error")
     |> Task.map (always (Validated token))
-
-
-initAuthFlow : String -> Task.Task Never String
-initAuthFlow =
-  Native.OAuth.initAuthFlow
 
 
 update : Msg -> Client -> (Client, Cmd Msg)
@@ -175,13 +202,17 @@ update msg client =
       client ! []
 
     Auth ->
-      client ! [ Task.perform (always Nop) Hash (initAuthFlow (buildAuthUrl client.config)) ]
+      client !
+        [ Task.perform
+          (always Nop)
+          Hash
+          (initAuthFlow (buildAuthUrl client.config))
+        ]
 
     VerifyAuth r ->
       case r of
         Ok t ->
           { client | token = Just t } ! []
-
         _ ->
           client ! []
 
@@ -189,9 +220,17 @@ update msg client =
       let
         token = getTokenFromHash hash
       in
-        client ! [
-          Task.perform
+        client !
+          [ Task.perform
             VerifyAuth
             VerifyAuth
             (Task.toResult (validateToken client token))
-        ]
+          ]
+
+
+-- NATIVE
+
+
+initAuthFlow : String -> Task.Task Never String
+initAuthFlow =
+  Native.OAuth.initAuthFlow
