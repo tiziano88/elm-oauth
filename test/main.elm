@@ -95,7 +95,12 @@ view model =
     , button [ onClick (GoogleAuth OAuth.Auth) ] [ text "Google Auth" ]
     , button [ onClick (FacebookAuth OAuth.Auth) ] [ text "Facebook Auth" ]
     , br [] []
-    , pre [] [ text (toString model) ]
+    , pre
+      [ style
+        [ ("white-space", "pre-wrap")
+        ]
+      ]
+      [ text (toString model) ]
     ]
 
 
