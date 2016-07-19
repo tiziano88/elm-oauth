@@ -69,15 +69,15 @@ update msg model =
     DriveResp ->
       model ! []
 
-    GoogleAuth m ->
+    GoogleAuth authMsg ->
       let
-        (client, cmd) = OAuth.update m model.googleAuthClient
+        (client, cmd) = OAuth.update authMsg model.googleAuthClient
       in
         { model | googleAuthClient = client } ! [ Cmd.map GoogleAuth cmd ]
 
-    FacebookAuth m ->
+    FacebookAuth authMsg ->
       let
-        (client, cmd) = OAuth.update m model.facebookAuthClient
+        (client, cmd) = OAuth.update authMsg model.facebookAuthClient
       in
         { model | facebookAuthClient = client } ! [ Cmd.map FacebookAuth cmd ]
 
@@ -128,7 +128,7 @@ driveCmd model =
   Task.perform
     (always DriveResp)
     (always DriveResp)
-    (send (OAuth.token model.googleAuthClient) drive [("q", "name contains 'test'")])
+    (send (OAuth.getToken model.googleAuthClient) drive [("q", "name contains 'test'")])
 
 
 newApiClient : ApiClient

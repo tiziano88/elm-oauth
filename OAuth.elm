@@ -7,7 +7,7 @@ module OAuth exposing
   , facebookConfig
   , newClient
   , update
-  , token
+  , getToken
   )
 
 import Dict
@@ -100,8 +100,8 @@ newClient config =
 
 {-| Extracts a validated token from an existing OAuth client, if present.
 -}
-token : Client -> Maybe Token
-token = .token
+getToken : Client -> Maybe Token
+getToken = .token
 
 
 -- TODO: Generate and verify nonce.
@@ -186,9 +186,12 @@ update msg client =
           client ! []
 
     Hash hash ->
-      client ! [
-        Task.perform
-          VerifyAuth
-          VerifyAuth
-          (Task.toResult (validateToken client (getTokenFromHash hash)))
-      ]
+      let
+        token = getTokenFromHash hash
+      in
+        client ! [
+          Task.perform
+            VerifyAuth
+            VerifyAuth
+            (Task.toResult (validateToken client token))
+        ]
