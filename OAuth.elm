@@ -1,12 +1,9 @@
 module OAuth exposing
   ( Client
-  , Config
+  , ServerConfig
+  , ClientConfig
   , Msg (Auth)
   , Token (..)
-  , googleConfig
-  , facebookConfig
-  , gitHubConfig
-  , stackExchangeConfig
   , newClient
   , update
   , getToken
@@ -31,69 +28,22 @@ type Msg
   | Hash String
 
 
-{-| Configuration for a single OAuth client.
+{-| Server-side configuration for a single OAuth client.
 It includes the endpoints used to obtain and verify tokens, and also client-specific settings.
 -}
-type alias Config =
+type alias ServerConfig =
   { endpointUrl : String
   , validateUrl : String
-  , clientId : String
+  }
+
+
+{-| Client-side configuration for a single OAuth client.
+It includes the endpoints used to obtain and verify tokens, and also client-specific settings.
+-}
+type alias ClientConfig =
+  { clientId : String
   , scopes : List String
   , redirectUrl : String
-  }
-
-
-{-| Base configuration for Google endpoints
-Based on https://developers.google.com/identity/protocols/OAuth2UserAgent .
--}
-googleConfig : Config
-googleConfig =
-  { endpointUrl = "https://accounts.google.com/o/oauth2/v2/auth"
-  , validateUrl = "https://www.googleapis.com/oauth2/v3/tokeninfo"
-  , clientId = ""
-  , scopes = []
-  , redirectUrl = ""
-  }
-
-
-{-| Base configuration for Facebook endpoints
-Based on https://developers.facebook.com/docs/facebook-login/manually-build-a-login-flow .
--}
-facebookConfig : Config
-facebookConfig =
-  { endpointUrl = "https://www.facebook.com/dialog/oauth"
-  , validateUrl = "https://graph.facebook.com/debug_token"
-  , clientId = ""
-  , scopes = []
-  , redirectUrl = ""
-  }
-
-
-{-| Base configuration for GitHub endpoints
-Based on https://developer.github.com/v3/oauth/ .
-Note: Does not currently work. It seems that GitHub does not currently support web-only flow.
--}
-gitHubConfig : Config
-gitHubConfig =
-  { endpointUrl = "https://github.com/login/oauth/authorize"
-  , validateUrl = ""
-  , clientId = ""
-  , scopes = []
-  , redirectUrl = ""
-  }
-
-
-{-| Base configuration for StackExchange endpoints
-Based on https://api.stackexchange.com/docs/authentication .
-Note: Verification does not seem to be provided by this endpoint.
--}
-stackExchangeConfig : Config
-stackExchangeConfig =
-  { endpointUrl = "https://stackexchange.com/oauth/dialog"
-  , validateUrl = ""
-  , clientId = ""
-  , scopes = []
-  , redirectUrl = ""
   }
 
 
@@ -108,7 +58,8 @@ Normally embedded in the application model.
 
 -}
 type alias Client =
-  { config : Config
+  { serverConfig : ServerConfig
+  , clientConfig : ClientConfig
   , token : Maybe Token
   }
 
@@ -119,14 +70,15 @@ Normally used when initialising the application model.
     init : (Model, Cmd Msg)
     init = {
       { ...
-      , authClient = (OAuth.newClient config)
+      , authClient = (OAuth.newClient serverConfig clientConfig)
       , ...
       }
 
 -}
-newClient : Config -> Client
-newClient config =
-  { config = config
+newClient : ServerConfig -> ClientConfig -> Client
+newClient serverConfig clientConfig =
+  { serverConfig = serverConfig
+  , clientConfig = clientConfig
   , token = Nothing
   }
 
@@ -138,23 +90,23 @@ getToken = .token
 
 
 -- TODO: Generate and verify nonce.
-buildAuthUrl : Config -> String
-buildAuthUrl config =
+buildAuthUrl : Client -> String
+buildAuthUrl client =
   Http.url
-    config.endpointUrl
+    client.serverConfig.endpointUrl
     [ ("response_type", "code token")
     , ("immediate", "true")
     , ("approval_prompt", "auto")
-    , ("client_id", config.clientId)
-    , ("redirect_uri", config.redirectUrl)
-    , ("scope", String.join " " config.scopes)
+    , ("client_id", client.clientConfig.clientId)
+    , ("redirect_uri", client.clientConfig.redirectUrl)
+    , ("scope", String.join " " client.clientConfig.scopes)
     ]
 
 
 buildValidateUrl : Client -> String -> String
 buildValidateUrl client token =
   Http.url
-    client.config.validateUrl
+    client.serverConfig.validateUrl
     [ ("input_token", token)
     , ("access_token", token)
     ]
@@ -206,7 +158,7 @@ update msg client =
         [ Task.perform
           (always Nop)
           Hash
-          (initAuthFlow (buildAuthUrl client.config))
+          (initAuthFlow (buildAuthUrl client))
         ]
 
     VerifyAuth r ->

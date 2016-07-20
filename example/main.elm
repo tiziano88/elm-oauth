@@ -5,7 +5,8 @@ import Html.Events exposing (..)
 import Http
 import Task
 
-import OAuth exposing (googleConfig, facebookConfig, gitHubConfig, stackExchangeConfig)
+import OAuth
+import OAuth.Config
 
 
 main =
@@ -28,37 +29,33 @@ type alias Model =
   }
 
 
-google : OAuth.Config
+google : OAuth.ClientConfig
 google =
-  { googleConfig
-  | clientId = "253270339440-tp9fiqj5boaqvrs3j8g2u0mtdn4ittgp.apps.googleusercontent.com"
+  { clientId = "253270339440-tp9fiqj5boaqvrs3j8g2u0mtdn4ittgp.apps.googleusercontent.com"
   , scopes = [ "https://www.googleapis.com/auth/drive" ]
   , redirectUrl = "http://localhost:8000/main.elm"
   }
 
 
-facebook : OAuth.Config
+facebook : OAuth.ClientConfig
 facebook =
-  { facebookConfig
-  | clientId = "299210180425495"
+  { clientId = "299210180425495"
   , scopes = [ "public_profile" ]
   , redirectUrl = "http://localhost:8000/main.elm"
   }
 
 
-gitHub : OAuth.Config
+gitHub : OAuth.ClientConfig
 gitHub =
-  { gitHubConfig
-  | clientId = "b7941bb82bd63e684712"
+  { clientId = "b7941bb82bd63e684712"
   , scopes = [ "user" ]
   , redirectUrl = "http://localhost:8000/main.elm"
   }
 
 
-stackExchange : OAuth.Config
+stackExchange : OAuth.ClientConfig
 stackExchange =
-  { stackExchangeConfig
-  | clientId = "7515"
+  { clientId = "7515"
   , scopes = [ "" ]
   , redirectUrl = "http://localhost:8000/main.elm"
   }
@@ -66,10 +63,10 @@ stackExchange =
 
 init : (Model, Cmd Msg)
 init =
-  { googleAuthClient = (OAuth.newClient google)
-  , facebookAuthClient = (OAuth.newClient facebook)
-  , gitHubAuthClient = (OAuth.newClient gitHub)
-  , stackExchangeAuthClient = (OAuth.newClient stackExchange)
+  { googleAuthClient = (OAuth.newClient OAuth.Config.google google)
+  , facebookAuthClient = (OAuth.newClient OAuth.Config.facebook facebook)
+  , gitHubAuthClient = (OAuth.newClient OAuth.Config.gitHub gitHub)
+  , stackExchangeAuthClient = (OAuth.newClient OAuth.Config.stackExchange stackExchange)
   } ! []
 
 
