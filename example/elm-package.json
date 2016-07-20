@@ -1,10 +1,11 @@
 {
     "version": "1.0.0",
-    "summary": "OAuth client",
+    "summary": "OAuth client example",
     "repository": "https://github.com/tiziano88/elm-oauth.git",
     "license": "BSD3",
     "source-directories": [
-        "src"
+        ".",
+        "../src"
     ],
     "exposed-modules": [],
     "native-modules": true,
