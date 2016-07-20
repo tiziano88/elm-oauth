@@ -1,5 +1,11 @@
 module OAuth.Config exposing (..)
 
+{-| This library contains several ready-made server configs for various OAuth 2.0 providers
+
+@docs google, facebook, gitHub, stackExchange
+
+-}
+
 import OAuth
 
 {-| Base configuration for Google endpoints

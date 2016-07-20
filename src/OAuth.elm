@@ -9,6 +9,26 @@ module OAuth exposing
   , getToken
   )
 
+{-| This library allows handling OAuth 2.0 authentication.
+
+# Client
+
+@docs Client, newClient
+
+# Configuration
+
+@docs ServerConfig, ClientConfig
+
+# Token
+
+@docs Token, getToken
+
+# App
+
+@docs Msg, update
+
+-}
+
 import Dict
 import Http
 import String
@@ -17,10 +37,14 @@ import Task
 import Native.OAuth
 
 
+{-| Represents a validated OAuth token.
+-}
 type Token
   = Validated String
 
 
+{-| Elm Architecture Message.
+-}
 type Msg
   = Nop
   | Auth
@@ -147,6 +171,8 @@ validateToken client token =
     |> Task.map (always (Validated token))
 
 
+{-| Elm Architecture update function.
+-}
 update : Msg -> Client -> (Client, Cmd Msg)
 update msg client =
   case msg of
