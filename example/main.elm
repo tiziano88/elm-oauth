@@ -3,6 +3,7 @@ import Html.App as Html
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http
+import Navigation
 import Task
 
 import OAuth
@@ -10,10 +11,11 @@ import OAuth.Config
 
 
 main =
-  Html.program
+  Navigation.program (OAuth.urlParser googleAuthClient)
     { init = init
     , view = view
     , update = update
+    , urlUpdate = urlUpdate
     , subscriptions = subscriptions
     }
 
@@ -22,52 +24,53 @@ main =
 
 
 type alias Model =
-  { googleAuthClient : OAuth.Client
-  , facebookAuthClient : OAuth.Client
-  , gitHubAuthClient : OAuth.Client
-  , stackExchangeAuthClient : OAuth.Client
+  { token : Maybe OAuth.Token
   }
 
-
-google : OAuth.ClientConfig
-google =
-  { clientId = "253270339440-tp9fiqj5boaqvrs3j8g2u0mtdn4ittgp.apps.googleusercontent.com"
-  , scopes = [ "https://www.googleapis.com/auth/drive" ]
-  , redirectUrl = "http://localhost:8000/main.elm"
-  }
-
-
-facebook : OAuth.ClientConfig
-facebook =
-  { clientId = "299210180425495"
-  , scopes = [ "public_profile" ]
-  , redirectUrl = "http://localhost:8000/main.elm"
-  }
+googleAuthClient : OAuth.Client
+googleAuthClient =
+  OAuth.newClient
+    OAuth.Config.google
+    { clientId = "253270339440-tp9fiqj5boaqvrs3j8g2u0mtdn4ittgp.apps.googleusercontent.com"
+    , scopes = [ "https://www.googleapis.com/auth/drive" ]
+    , redirectUrl = "http://localhost:8000/main.elm"
+    }
 
 
-gitHub : OAuth.ClientConfig
-gitHub =
-  { clientId = "b7941bb82bd63e684712"
-  , scopes = [ "user" ]
-  , redirectUrl = "http://localhost:8000/main.elm"
-  }
+facebookAuthClient : OAuth.Client
+facebookAuthClient =
+  OAuth.newClient
+    OAuth.Config.facebook
+    { clientId = "299210180425495"
+    , scopes = [ "public_profile" ]
+    , redirectUrl = "http://localhost:8000/main.elm"
+    }
 
 
-stackExchange : OAuth.ClientConfig
-stackExchange =
-  { clientId = "7515"
-  , scopes = [ "" ]
-  , redirectUrl = "http://localhost:8000/main.elm"
-  }
+gitHubAuthClient : OAuth.Client
+gitHubAuthClient =
+  OAuth.newClient
+    OAuth.Config.gitHub
+    { clientId = "b7941bb82bd63e684712"
+    , scopes = [ "user" ]
+    , redirectUrl = "http://localhost:8000/main.elm"
+    }
 
 
-init : (Model, Cmd Msg)
-init =
-  { googleAuthClient = (OAuth.newClient OAuth.Config.google google)
-  , facebookAuthClient = (OAuth.newClient OAuth.Config.facebook facebook)
-  , gitHubAuthClient = (OAuth.newClient OAuth.Config.gitHub gitHub)
-  , stackExchangeAuthClient = (OAuth.newClient OAuth.Config.stackExchange stackExchange)
-  } ! []
+stackExchangeAuthClient : OAuth.Client
+stackExchangeAuthClient =
+  OAuth.newClient
+    OAuth.Config.stackExchange
+    { clientId = "7515"
+    , scopes = [ "" ]
+    , redirectUrl = "http://localhost:8000/main.elm"
+    }
+
+
+init : (Task.Task String OAuth.Token) -> (Model, Cmd Msg)
+init task =
+  { token = Nothing
+  } ! [ Task.perform (always Nop) Token task ]
 
 
 -- UPDATE
@@ -75,10 +78,7 @@ init =
 
 type Msg
   = Nop
-  | FacebookAuth OAuth.Msg
-  | GoogleAuth OAuth.Msg
-  | GitHubAuth OAuth.Msg
-  | StackExchangeAuth OAuth.Msg
+  | Token OAuth.Token
   | Drive
   | DriveResp
 
@@ -89,35 +89,21 @@ update msg model =
     Nop ->
       model ! []
 
+    Token t ->
+      { model
+      | token = Just t
+      } ! []
+
     DriveResp ->
       model ! []
 
-    GoogleAuth authMsg ->
-      let
-        (client, cmd) = OAuth.update authMsg model.googleAuthClient
-      in
-        { model | googleAuthClient = client } ! [ Cmd.map GoogleAuth cmd ]
-
-    FacebookAuth authMsg ->
-      let
-        (client, cmd) = OAuth.update authMsg model.facebookAuthClient
-      in
-        { model | facebookAuthClient = client } ! [ Cmd.map FacebookAuth cmd ]
-
-    GitHubAuth authMsg ->
-      let
-        (client, cmd) = OAuth.update authMsg model.gitHubAuthClient
-      in
-        { model | gitHubAuthClient = client } ! [ Cmd.map GitHubAuth cmd ]
-
-    StackExchangeAuth authMsg ->
-      let
-        (client, cmd) = OAuth.update authMsg model.stackExchangeAuthClient
-      in
-        { model | stackExchangeAuthClient = client } ! [ Cmd.map StackExchangeAuth cmd ]
-
     Drive ->
       model ! [ driveCmd model ]
+
+
+urlUpdate : (Task.Task String OAuth.Token) -> Model -> (Model, Cmd Msg)
+urlUpdate task model =
+  (model, Task.perform (always Nop) (always Nop) task)
 
 
 -- VIEW
@@ -127,11 +113,12 @@ view : Model -> Html Msg
 view model =
   div []
     [ h2 [] [text "OAuth Demo"]
-    , button [ onClick (GoogleAuth OAuth.Auth) ] [ text "Google Auth" ]
-    , button [ onClick (FacebookAuth OAuth.Auth) ] [ text "Facebook Auth" ]
-    , button [ onClick (GitHubAuth OAuth.Auth) ] [ text "GitHub Auth" ]
-    , button [ onClick (StackExchangeAuth OAuth.Auth) ] [ text "StackExchange Auth" ]
-    , br [] []
+    , ul []
+      [ li [] [ a [ href <| OAuth.buildAuthUrl googleAuthClient ] [ text "Google" ] ]
+      , li [] [ a [ href <| OAuth.buildAuthUrl facebookAuthClient ] [ text "Facebook" ] ]
+      , li [] [ a [ href <| OAuth.buildAuthUrl gitHubAuthClient ] [ text "GitHub" ] ]
+      , li [] [ a [ href <| OAuth.buildAuthUrl stackExchangeAuthClient ] [ text "StackExchange" ] ]
+      ]
     , pre
       [ style
         [ ("white-space", "pre-wrap")
@@ -162,10 +149,14 @@ method = "get"
 
 driveCmd : Model -> Cmd Msg
 driveCmd model =
-  Task.perform
-    (always DriveResp)
-    (always DriveResp)
-    (send (OAuth.getToken model.googleAuthClient) drive [("q", "name contains 'test'")])
+  case model.token of
+    Just token ->
+      Task.perform
+        (always DriveResp)
+        (always DriveResp)
+        (send token drive [("q", "name contains 'test'")])
+
+    Nothing -> Cmd.none
 
 
 newApiClient : ApiClient
@@ -210,7 +201,7 @@ drive =
   }
 
 
-req : Maybe OAuth.Token -> ApiDef -> List (String, String) -> Http.Request
+req : OAuth.Token -> ApiDef -> List (String, String) -> Http.Request
 req token def fields =
   { verb = def.method
   , headers = getHeaders token
@@ -222,14 +213,13 @@ req token def fields =
   }
 
 
-getHeaders : Maybe OAuth.Token -> List (String, String)
+getHeaders : OAuth.Token -> List (String, String)
 getHeaders token =
   case token of
-    Just (OAuth.Validated t) -> [("Authorization", "Bearer " ++ t)]
-    _ -> []
+    OAuth.Validated t -> [("Authorization", "Bearer " ++ t)]
 
 
-send : Maybe OAuth.Token -> ApiDef -> List (String, String) -> Task.Task Http.Error String
+send : OAuth.Token -> ApiDef -> List (String, String) -> Task.Task Http.Error String
 send token def fields =
   Http.send Http.defaultSettings (req token def fields)
     |> Task.mapError promoteError

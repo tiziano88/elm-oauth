@@ -2,11 +2,10 @@ module OAuth exposing
   ( Client
   , ServerConfig
   , ClientConfig
-  , Msg (Auth)
   , Token (..)
+  , buildAuthUrl
   , newClient
-  , update
-  , getToken
+  , urlParser
   )
 
 {-| This library allows handling OAuth 2.0 authentication.
@@ -21,35 +20,25 @@ module OAuth exposing
 
 # Token
 
-@docs Token, getToken
+@docs Token
 
 # App
 
-@docs Msg, update
+@docs buildAuthUrl, urlParser
 
 -}
 
 import Dict
 import Http
+import Navigation
 import String
 import Task
-
-import Native.OAuth
 
 
 {-| Represents a validated OAuth token.
 -}
 type Token
   = Validated String
-
-
-{-| Elm Architecture Message.
--}
-type Msg
-  = Nop
-  | Auth
-  | VerifyAuth (Result String Token)
-  | Hash String
 
 
 {-| Server-side configuration for a single OAuth client.
@@ -72,47 +61,29 @@ type alias ClientConfig =
 
 
 {-| An OAuth client.
-Normally embedded in the application model.
-
-    type alias Model =
-      { ...
-      , authClient : OAuth.Client
-      , ...
-      }
-
 -}
 type alias Client =
   { serverConfig : ServerConfig
   , clientConfig : ClientConfig
-  , token : Maybe Token
   }
 
 
-{-| Creates a new OAuth client based on a configuration.
-Normally used when initialising the application model.
+{-| Creates a new OAuth client based on a server configuration and a client configuration.
+Normally defined at top-level in the application.
 
-    init : (Model, Cmd Msg)
-    init = {
-      { ...
-      , authClient = (OAuth.newClient serverConfig clientConfig)
-      , ...
-      }
+    authClient : OAuth.Client
+    authClient = OAuth.newClient serverConfig clientConfig
 
 -}
 newClient : ServerConfig -> ClientConfig -> Client
 newClient serverConfig clientConfig =
   { serverConfig = serverConfig
   , clientConfig = clientConfig
-  , token = Nothing
   }
 
 
-{-| Extracts a validated token from an existing OAuth client, if present.
+{-| Builds an URL that when followed allows the user to authenticate with the specified provider.
 -}
-getToken : Client -> Maybe Token
-getToken = .token
-
-
 -- TODO: Generate and verify nonce.
 buildAuthUrl : Client -> String
 buildAuthUrl client =
@@ -134,6 +105,23 @@ buildValidateUrl client token =
     [ ("input_token", token)
     , ("access_token", token)
     ]
+
+
+{-| A function to create a URL parser to be used with a `Navigation.program`.
+
+    main =
+      Navigation.program (OAuth.urlParser authClient)
+        { init = ...
+        , view = ...
+        , update = ...
+        , urlUpdate = ...
+        , subscriptions = ...
+        }
+
+-}
+urlParser : Client -> Navigation.Parser (Task.Task String Token)
+urlParser client =
+  Navigation.makeParser (.hash >> getTokenFromHash >> validateToken client)
 
 
 getTokenFromHash : String -> String
@@ -169,46 +157,3 @@ validateToken client token =
   Http.getString (buildValidateUrl client token)
     |> Task.mapError (always "error")
     |> Task.map (always (Validated token))
-
-
-{-| Elm Architecture update function.
--}
-update : Msg -> Client -> (Client, Cmd Msg)
-update msg client =
-  case msg of
-    Nop ->
-      client ! []
-
-    Auth ->
-      client !
-        [ Task.perform
-          (always Nop)
-          Hash
-          (initAuthFlow (buildAuthUrl client))
-        ]
-
-    VerifyAuth r ->
-      case r of
-        Ok t ->
-          { client | token = Just t } ! []
-        _ ->
-          client ! []
-
-    Hash hash ->
-      let
-        token = getTokenFromHash hash
-      in
-        client !
-          [ Task.perform
-            VerifyAuth
-            VerifyAuth
-            (Task.toResult (validateToken client token))
-          ]
-
-
--- NATIVE
-
-
-initAuthFlow : String -> Task.Task Never String
-initAuthFlow =
-  Native.OAuth.initAuthFlow
