@@ -102,7 +102,7 @@ update msg model =
     Token t ->
       { model
       | token = Just t
-      } ! []
+      } ! [ Navigation.modifyUrl "#" ]
 
     DriveResp ->
       model ! []
