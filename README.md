@@ -9,3 +9,4 @@ See also:
 
 - https://tools.ietf.org/html/rfc6749
 - https://www.digitalocean.com/community/tutorials/an-introduction-to-oauth-2
+- http://oauthbible.com/#oauth-2-two-legged
