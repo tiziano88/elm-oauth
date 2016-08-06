@@ -11,7 +11,7 @@ import OAuth.Config
 
 
 main =
-  Navigation.program (OAuth.urlParser googleAuthClient)
+  Navigation.program (OAuth.urlParser digitalOceanAuthClient)
     { init = init
     , view = view
     , update = update
@@ -43,6 +43,16 @@ facebookAuthClient =
     OAuth.Config.facebook
     { clientId = "299210180425495"
     , scopes = [ "public_profile" ]
+    , redirectUrl = "http://localhost:8000/main.elm"
+    }
+
+
+digitalOceanAuthClient : OAuth.Client
+digitalOceanAuthClient =
+  OAuth.newClient
+    OAuth.Config.digitalOcean
+    { clientId = "34047f70e9d7e91befef744b49f21fc58d506e8f0c1d7681e8af7fdb4d59da55"
+    , scopes = [ "read" ]
     , redirectUrl = "http://localhost:8000/main.elm"
     }
 
@@ -116,6 +126,7 @@ view model =
     , ul []
       [ li [] [ a [ href <| OAuth.buildAuthUrl googleAuthClient ] [ text "Google" ] ]
       , li [] [ a [ href <| OAuth.buildAuthUrl facebookAuthClient ] [ text "Facebook" ] ]
+      , li [] [ a [ href <| OAuth.buildAuthUrl digitalOceanAuthClient ] [ text "DigitalOcean" ] ]
       , li [] [ a [ href <| OAuth.buildAuthUrl gitHubAuthClient ] [ text "GitHub" ] ]
       , li [] [ a [ href <| OAuth.buildAuthUrl stackExchangeAuthClient ] [ text "StackExchange" ] ]
       ]

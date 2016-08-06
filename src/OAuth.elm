@@ -89,7 +89,7 @@ buildAuthUrl : Client -> String
 buildAuthUrl client =
   Http.url
     client.serverConfig.endpointUrl
-    [ ("response_type", "code token")
+    [ ("response_type", "token")
     , ("immediate", "true")
     , ("approval_prompt", "auto")
     , ("client_id", client.clientConfig.clientId)
