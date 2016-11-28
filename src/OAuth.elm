@@ -25,7 +25,7 @@ module OAuth
 
 # App
 
-@docs buildAuthUrl, urlParser
+@docs buildAuthUrl, init
 
 -}
 
@@ -83,19 +83,27 @@ newClient serverConfig clientConfig =
     }
 
 
-{-| Builds an URL that when followed allows the user to authenticate with the specified provider.
+{-| A function to create an initial Cmd to be used with a `Navigation.program` init function.
+
+    type Msg
+        = Token (Result Http.Error OAuth.Token)
+        ...
+
+    init : Navigation.Location -> ( Model, Cmd Msg )
+    init location =
+        { ... } ! [ OAuth.init client location |> Cmd.map Token ]
 -}
+init : Client -> Navigation.Location -> Cmd (Result Http.Error Token)
+init client =
+    .hash >> getTokenFromHash >> validateToken client
 
 
 
 -- TODO: Generate and verify nonce.
 
 
-init : Client -> Navigation.Location -> Cmd (Result Http.Error Token)
-init client =
-    .hash >> getTokenFromHash >> validateToken client
-
-
+{-| Builds an URL that when followed allows the user to authenticate with the specified provider.
+-}
 buildAuthUrl : Client -> String
 buildAuthUrl client =
     url
