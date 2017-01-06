@@ -4,6 +4,7 @@ module OAuth
         , ServerConfig
         , ClientConfig
         , Token(..)
+        , AuthFlow(..)
         , init
         , buildAuthUrl
         , newClient
@@ -58,7 +59,18 @@ type alias ClientConfig =
     { clientId : String
     , scopes : List String
     , redirectUrl : String
+    , authFlow : AuthFlow
     }
+
+
+{-| They type of authorization flow (or grant) to use.
+
+- AuthorizationCode: https://tools.ietf.org/html/rfc6749#section-4.1
+- Implicit: https://tools.ietf.org/html/rfc6749#section-4.2
+-}
+type AuthFlow
+    = AuthorizationCode
+    | Implicit
 
 
 {-| An OAuth client.

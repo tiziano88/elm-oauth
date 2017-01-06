@@ -36,6 +36,7 @@ googleAuthClient =
         { clientId = "253270339440-tp9fiqj5boaqvrs3j8g2u0mtdn4ittgp.apps.googleusercontent.com"
         , scopes = [ "https://www.googleapis.com/auth/drive" ]
         , redirectUrl = "http://localhost:8000/main.elm"
+        , authFlow = OAuth.Implicit
         }
 
 
@@ -46,6 +47,7 @@ facebookAuthClient =
         { clientId = "299210180425495"
         , scopes = [ "public_profile" ]
         , redirectUrl = "http://localhost:8000/main.elm"
+        , authFlow = OAuth.Implicit
         }
 
 
@@ -56,6 +58,7 @@ digitalOceanAuthClient =
         { clientId = "34047f70e9d7e91befef744b49f21fc58d506e8f0c1d7681e8af7fdb4d59da55"
         , scopes = [ "read" ]
         , redirectUrl = "http://localhost:8000/main.elm"
+        , authFlow = OAuth.Implicit
         }
 
 
@@ -66,6 +69,7 @@ gitHubAuthClient =
         { clientId = "b7941bb82bd63e684712"
         , scopes = [ "user" ]
         , redirectUrl = "http://localhost:8000/main.elm"
+        , authFlow = OAuth.Implicit
         }
 
 
@@ -76,6 +80,7 @@ stackExchangeAuthClient =
         { clientId = "7515"
         , scopes = [ "" ]
         , redirectUrl = "http://localhost:8000/main.elm"
+        , authFlow = OAuth.Implicit
         }
 
 
