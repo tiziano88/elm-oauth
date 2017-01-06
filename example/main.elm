@@ -102,10 +102,7 @@ update msg model =
             model ! []
 
         Token (Ok t) ->
-            { model
-                | token = Just t
-            }
-                ! [ Navigation.modifyUrl "#" ]
+            { model | token = Just t } ! []
 
         Token (Err _) ->
             model ! []

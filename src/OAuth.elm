@@ -163,7 +163,15 @@ validateToken : Client -> String -> Cmd (Result Http.Error Token)
 validateToken client token =
     Http.getString (buildValidateUrl client token)
         |> Http.send identity
-        |> Cmd.map (Result.map Validated)
+        |> Cmd.map
+            (\r ->
+                case r of
+                    Ok _ ->
+                        Ok (Validated token)
+
+                    Err e ->
+                        Err e
+            )
 
 
 
