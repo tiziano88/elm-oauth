@@ -162,8 +162,7 @@ parseSingleParam p =
 validateToken : Client -> String -> Cmd (Result Http.Error Token)
 validateToken client token =
     Http.getString (buildValidateUrl client token)
-        |> Http.send identity
-        |> Cmd.map
+        |> Http.send
             (\r ->
                 case r of
                     Ok _ ->
