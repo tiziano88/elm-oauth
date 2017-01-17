@@ -18,7 +18,7 @@ module OAuth
 
 # Configuration
 
-@docs ServerConfig, ClientConfig
+@docs ServerConfig, ClientConfig, AuthFlow
 
 # Token
 
