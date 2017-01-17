@@ -1,5 +1,5 @@
 {
-    "version": "2.0.1",
+    "version": "3.0.0",
     "summary": "OAuth client",
     "repository": "https://github.com/tiziano88/elm-oauth.git",
     "license": "MIT",
