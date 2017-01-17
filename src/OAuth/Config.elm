@@ -8,15 +8,17 @@ module OAuth.Config exposing (..)
 
 import OAuth
 
+
 {-| Base configuration for Google endpoints.
 
 Based on https://developers.google.com/identity/protocols/OAuth2UserAgent .
 -}
 google : OAuth.ServerConfig
 google =
-  { endpointUrl = "https://accounts.google.com/o/oauth2/v2/auth"
-  , validateUrl = "https://www.googleapis.com/oauth2/v3/tokeninfo"
-  }
+    { authorizeUrl = "https://accounts.google.com/o/oauth2/v2/auth"
+    , tokenUrl = ""
+    , validateUrl = "https://www.googleapis.com/oauth2/v3/tokeninfo"
+    }
 
 
 {-| Base configuration for Facebook endpoints.
@@ -25,9 +27,10 @@ Based on https://developers.facebook.com/docs/facebook-login/manually-build-a-lo
 -}
 facebook : OAuth.ServerConfig
 facebook =
-  { endpointUrl = "https://www.facebook.com/dialog/oauth"
-  , validateUrl = "https://graph.facebook.com/debug_token"
-  }
+    { authorizeUrl = "https://www.facebook.com/dialog/oauth"
+    , tokenUrl = ""
+    , validateUrl = "https://graph.facebook.com/debug_token"
+    }
 
 
 {-| Base configuration for DigitalOcean endpoints.
@@ -38,9 +41,10 @@ Note: Verification does not seem to be provided by this endpoint.
 -}
 digitalOcean : OAuth.ServerConfig
 digitalOcean =
-  { endpointUrl = "https://cloud.digitalocean.com/v1/oauth/authorize"
-  , validateUrl = ""
-  }
+    { authorizeUrl = "https://cloud.digitalocean.com/v1/oauth/authorize"
+    , tokenUrl = ""
+    , validateUrl = ""
+    }
 
 
 {-| Base configuration for GitHub endpoints.
@@ -51,9 +55,10 @@ Note: Does not currently work. It seems that GitHub does not currently support w
 -}
 gitHub : OAuth.ServerConfig
 gitHub =
-  { endpointUrl = "https://github.com/login/oauth/authorize"
-  , validateUrl = ""
-  }
+    { authorizeUrl = "https://github.com/login/oauth/authorize"
+    , tokenUrl = ""
+    , validateUrl = ""
+    }
 
 
 {-| Base configuration for StackExchange endpoints.
@@ -64,6 +69,7 @@ Note: Verification does not seem to be provided by this endpoint.
 -}
 stackExchange : OAuth.ServerConfig
 stackExchange =
-  { endpointUrl = "https://stackexchange.com/oauth/dialog"
-  , validateUrl = ""
-  }
+    { authorizeUrl = "https://stackexchange.com/oauth/dialog"
+    , tokenUrl = ""
+    , validateUrl = ""
+    }

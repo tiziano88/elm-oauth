@@ -86,7 +86,7 @@ stackExchangeAuthClient =
 
 init : Navigation.Location -> ( Model, Cmd Msg )
 init location =
-    { token = Nothing } ! [ OAuth.init googleAuthClient location |> Cmd.map Token ]
+    { token = Nothing } ! [ OAuth.init customAuthClient location |> Cmd.map Token ]
 
 
 
@@ -119,6 +119,20 @@ update msg model =
             model ! [ driveCmd model ]
 
 
+customAuthClient : OAuth.Client
+customAuthClient =
+    OAuth.newClient
+        { authorizeUrl = "http://localhost:8080/oauth2/authorize"
+        , tokenUrl = "http://localhost:8080/oauth2/token"
+        , validateUrl = "http://xxx"
+        }
+        { clientId = "222222"
+        , scopes = [ "user" ]
+        , redirectUrl = "http://localhost:8000/main.elm"
+        , authFlow = OAuth.AuthorizationCode
+        }
+
+
 
 -- VIEW
 
@@ -133,6 +147,7 @@ view model =
             , li [] [ a [ href <| OAuth.buildAuthUrl digitalOceanAuthClient ] [ text "DigitalOcean" ] ]
             , li [] [ a [ href <| OAuth.buildAuthUrl gitHubAuthClient ] [ text "GitHub" ] ]
             , li [] [ a [ href <| OAuth.buildAuthUrl stackExchangeAuthClient ] [ text "StackExchange" ] ]
+            , li [] [ a [ href <| OAuth.buildAuthUrl customAuthClient ] [ text "Custom" ] ]
             ]
         , pre
             [ style

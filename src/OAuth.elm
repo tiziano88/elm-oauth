@@ -32,6 +32,7 @@ module OAuth
 
 import Dict
 import Http
+import Json.Decode
 import Navigation
 import String
 import Task
@@ -47,7 +48,8 @@ type Token
 It includes the endpoints used to obtain and verify tokens, and also client-specific settings.
 -}
 type alias ServerConfig =
-    { endpointUrl : String
+    { authorizeUrl : String
+    , tokenUrl : String
     , validateUrl : String
     }
 
@@ -81,6 +83,23 @@ type alias Client =
     }
 
 
+{-| See https://tools.ietf.org/html/rfc6749#section-4.1.4 .
+-}
+type alias AccessTokenResponse =
+    { accessToken : String
+    , tokenType : String
+    , expiresIn : Int
+    }
+
+
+accessTokenResponseDecoder : Json.Decode.Decoder AccessTokenResponse
+accessTokenResponseDecoder =
+    Json.Decode.map3 AccessTokenResponse
+        (Json.Decode.field "access_token" Json.Decode.string)
+        (Json.Decode.field "token_type" Json.Decode.string)
+        (Json.Decode.field "expires_in" Json.Decode.int)
+
+
 {-| Creates a new OAuth client based on a server configuration and a client configuration.
 Normally defined at top-level in the application.
 
@@ -107,7 +126,12 @@ newClient serverConfig clientConfig =
 -}
 init : Client -> Navigation.Location -> Cmd (Result Http.Error Token)
 init client =
-    .hash >> getTokenFromHash >> validateToken client
+    case client.clientConfig.authFlow of
+        Implicit ->
+            getTokenFromHash >> validateToken client
+
+        AuthorizationCode ->
+            getCodeFromQuery >> exchangeCode client
 
 
 
@@ -119,13 +143,27 @@ init client =
 buildAuthUrl : Client -> String
 buildAuthUrl client =
     url
-        client.serverConfig.endpointUrl
+        client.serverConfig.authorizeUrl
         [ ( "response_type", "token" )
         , ( "immediate", "true" )
         , ( "approval_prompt", "auto" )
         , ( "client_id", client.clientConfig.clientId )
         , ( "redirect_uri", client.clientConfig.redirectUrl )
         , ( "scope", String.join " " client.clientConfig.scopes )
+        ]
+
+
+{-| Builds an URL to request an access token.
+See https://tools.ietf.org/html/rfc6749#section-4.1.3 .
+-}
+buildTokenUrl : Client -> String -> String
+buildTokenUrl client code =
+    url
+        client.serverConfig.tokenUrl
+        [ ( "grant_type", "authorization_code" )
+        , ( "code", code )
+        , ( "client_id", client.clientConfig.clientId )
+        , ( "redirect_uri", client.clientConfig.redirectUrl )
         ]
 
 
@@ -138,13 +176,23 @@ buildValidateUrl client token =
         ]
 
 
-getTokenFromHash : String -> String
-getTokenFromHash s =
+getTokenFromHash : Navigation.Location -> String
+getTokenFromHash loc =
     let
         params =
-            parseUrlParams s
+            parseUrlParams loc.hash
     in
         Dict.get "access_token" params
+            |> Maybe.withDefault ""
+
+
+getCodeFromQuery : Navigation.Location -> String
+getCodeFromQuery loc =
+    let
+        params =
+            parseUrlParams loc.search
+    in
+        Dict.get "code" params
             |> Maybe.withDefault ""
 
 
@@ -179,6 +227,20 @@ validateToken client token =
                 case r of
                     Ok _ ->
                         Ok (Validated token)
+
+                    Err e ->
+                        Err e
+            )
+
+
+exchangeCode : Client -> String -> Cmd (Result Http.Error Token)
+exchangeCode client code =
+    Http.post (buildTokenUrl client code) Http.emptyBody accessTokenResponseDecoder
+        |> Http.send
+            (\r ->
+                case r of
+                    Ok v ->
+                        Ok (Validated v.accessToken)
 
                     Err e ->
                         Err e
